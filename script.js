@@ -1,58 +1,95 @@
-const playNote = (frequency) => {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    oscillator.type = 'sine'; // You can change this to 'square', 'sawtooth', or 'triangle'
-    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-    oscillator.connect(audioContext.destination);
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 1); // Sound will play for 1 second
-};
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-const notes = {
-    'do': 261.63,  // C4
-    're': 293.66,  // D4
-    'mi': 329.63,  // E4
-    'fa': 349.23,  // F4
-    'sol': 392.00, // G4
-    'la': 440.00,  // A4
-    'ti': 493.88,  // B4
-    'doHigh': 523.25 // C5
+const playNote = (frequency, duration = 0.3, startTime = 0) => {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(frequency, startTime);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    gainNode.gain.setValueAtTime(1, startTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+    oscillator.start(startTime);
+    oscillator.stop(startTime + duration);
 };
 
 const noteFrequencies = {
-    'C4': 261.63, // Do
-    'D4': 293.66, // Re
-    'E4': 329.63, // Mi
-    'F4': 349.23, // Fa
-    'G4': 392.00, // Sol
+    'C4': 261.63,
+    'D4': 293.66,
+    'E4': 329.63,
+    'F4': 349.23,
+    'G4': 392.00,
+    'A4': 440.00,
+    'B4': 493.88,
+    'C5': 523.25
 };
-// Event listeners for each note
-document.getElementById('play-do').addEventListener('click', () => playNote(notes.do));
-document.getElementById('play-re').addEventListener('click', () => playNote(notes.re));
-document.getElementById('play-mi').addEventListener('click', () => playNote(notes.mi));
-document.getElementById('play-fa').addEventListener('click', () => playNote(notes.fa));
-document.getElementById('play-sol').addEventListener('click', () => playNote(notes.sol));
-document.getElementById('play-la').addEventListener('click', () => playNote(notes.la));
-document.getElementById('play-ti').addEventListener('click', () => playNote(notes.ti));
-document.getElementById('play-do-high').addEventListener('click', () => playNote(notes.doHigh));
 
 const jingleBells = [
-    'E4', 'E4', 'E4',
-    'E4', 'E4', 'E4',
-    'E4', 'G4', 'C4', 'D4', 'E4',
-    'F4', 'F4', 'F4', 'F4', 'F4', 'E4', 'E4',
-    'E4', 'E4', 'D4', 'D4', 'E4', 'D4', 'G4'
+    { note: 'E4', duration: 0.3 }, { note: 'E4', duration: 0.3 }, { note: 'E4', duration: 0.6 },
+    { note: 'E4', duration: 0.3 }, { note: 'E4', duration: 0.3 }, { note: 'E4', duration: 0.6 },
+    { note: 'E4', duration: 0.3 }, { note: 'G4', duration: 0.3 }, { note: 'C4', duration: 0.3 },
+    { note: 'D4', duration: 0.3 }, { note: 'E4', duration: 0.6 },
+    { note: 'F4', duration: 0.3 }, { note: 'F4', duration: 0.3 }, { note: 'F4', duration: 0.45 },
+    { note: 'F4', duration: 0.15 }, { note: 'F4', duration: 0.3 }, { note: 'E4', duration: 0.3 },
+    { note: 'E4', duration: 0.3 }, { note: 'E4', duration: 0.45 }, { note: 'E4', duration: 0.15 },
+    { note: 'E4', duration: 0.3 }, { note: 'D4', duration: 0.3 }, { note: 'D4', duration: 0.3 },
+    { note: 'E4', duration: 0.3 }, { note: 'D4', duration: 0.3 }, { note: 'G4', duration: 0.6 },
+    { note: 'E4', duration: 0.3 }, { note: 'E4', duration: 0.3 }, { note: 'E4', duration: 0.6 },
+    { note: 'E4', duration: 0.3 }, { note: 'E4', duration: 0.3 }, { note: 'E4', duration: 0.6 },
+    { note: 'E4', duration: 0.3 }, { note: 'G4', duration: 0.3 }, { note: 'C4', duration: 0.3 },
+    { note: 'D4', duration: 0.3 }, { note: 'E4', duration: 0.6 },
+    { note: 'F4', duration: 0.3 }, { note: 'F4', duration: 0.3 }, { note: 'F4', duration: 0.45 },
+    { note: 'F4', duration: 0.15 }, { note: 'F4', duration: 0.3 }, { note: 'E4', duration: 0.3 },
+    { note: 'E4', duration: 0.3 }, { note: 'E4', duration: 0.15 }, { note: 'E4', duration: 0.15 },
+    { note: 'G4', duration: 0.3 }, { note: 'G4', duration: 0.3 }, { note: 'F4', duration: 0.3 },
+    { note: 'D4', duration: 0.3 }, { note: 'C4', duration: 0.6 }
 ];
 
 const playJingleBells = () => {
-    console.log('test')
-    let time = 0;
-    jingleBells.forEach(note => {
-        setTimeout(() => {
-            playNote(noteFrequencies[note]);
-        }, time);
-        time += 500; // Increase the time for the next note
+    const playButton = document.querySelector('#play-song');
+    playButton.disabled = true;
+
+    let startTime = audioContext.currentTime;
+    jingleBells.forEach(({ note, duration }) => {
+        playNote(noteFrequencies[note], duration, startTime);
+        startTime += duration + 0.1;
     });
+
+    setTimeout(() => {
+        playButton.disabled = false;
+    }, (startTime - audioContext.currentTime) * 1000);
 };
 
-document.querySelector('#play-song').addEventListener('click', () => playJingleBells())
+document.querySelector('#play-song').addEventListener('click', () => playJingleBells());
+
+function createSnowflake() {
+    const snowflake = document.createElement('div');
+    snowflake.classList.add('snowflake');
+
+    snowflake.style.left = Math.random() * window.innerWidth + 'px';
+    snowflake.style.fontSize = (Math.random() * 1 + 0.5) + 'em';
+
+    snowflake.textContent = '❄';
+
+    document.body.appendChild(snowflake);
+
+    const fallDuration = Math.random() * 3 + 2;
+    snowflake.animate([
+        { transform: 'translateY(0)' },
+        { transform: `translateY(${window.innerHeight}px)` }
+    ], {
+        duration: fallDuration * 1000,
+        easing: 'linear',
+        fill: 'forwards'
+    });
+
+    setTimeout(() => {
+        snowflake.remove();
+    }, fallDuration * 1000);
+}
+
+setInterval(createSnowflake, 300);
